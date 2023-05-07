@@ -12,7 +12,7 @@ import argparse
 from scapy.layers import http, inet, dhcp, dns, tls
 from scapy.layers.l2 import Ether
 import time
-import joblib 
+import joblib
 import pandas as pd
 from scapy.layers.inet import IP, TCP, UDP, ICMP
 from scapy.layers.l2 import ARP, Ether, Dot3
@@ -29,27 +29,37 @@ Live_Ids_String = "Live IDS"
 Pre_Build_String = "Pre Build IDS"
 ML_Based_String = "ML based"
 
+
 # making tokens for url
 def makeTokens(f):
-    tkns_BySlash = str(f.encode('utf-8')).split('/') # make tokens after splitting by slash
+    # make tokens after splitting by slash
+    tkns_BySlash = str(f.encode('utf-8')).split('/')
     total_Tokens = []
 
     for i in tkns_BySlash:
-            tokens = str(i).split('-') # make tokens after splitting by dash
-            tkns_ByDot = []
+        tokens = str(i).split('-')  # make tokens after splitting by dash
+        tkns_ByDot = []
 
-    for j in range(0,len(tokens)):
-        temp_Tokens = str(tokens[j]).split('.') # make tokens after splitting by dot
+    for j in range(0, len(tokens)):
+        # make tokens after splitting by dot
+        temp_Tokens = str(tokens[j]).split('.')
         tkns_ByDot = tkns_ByDot + temp_Tokens
         total_Tokens = total_Tokens + tokens + tkns_ByDot
-        total_Tokens = list(set(total_Tokens))  #remove redundant tokens
+        total_Tokens = list(set(total_Tokens))  # remove redundant tokens
 
         if 'com' in total_Tokens:
-            total_Tokens.remove('com') # removing .com since it occurs a lot of times and it should not be included in our features
-    
+            # removing .com since it occurs a lot of times and it should not be included in our features
+            total_Tokens.remove('com')
+
     return total_Tokens
 
+urls_data = pd.read_csv("./ml_ids/mail_url_dataset.csv")
 vectorizer = TfidfVectorizer(tokenizer=makeTokens)
+
+url_list = urls_data["url"]
+y =  urls_data["label"]
+Xx = vectorizer.fit_transform(url_list)
+
 
 class SubWindow(QDialog):
     def __init__(self, arg, parent=None):
@@ -91,7 +101,6 @@ class SubWindow(QDialog):
             }
         ''')
 
-       
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setWidget(self.text_edit)
@@ -107,18 +116,21 @@ class SubWindow(QDialog):
             return url
 
         return None
-    
 
+ 
     # checking url is malicious or not
     def malicous_url(self, url):
-        predict_for_me(url)
+        check_url = vectorizer.transform([url])
 
-        # print(predict)
-        # if predict == 'bad':
-        #     return True
-        
+        model = joblib.load('./ml_ids/model.pkl')
+        predict = model.predict(check_url)
+
+        print(predict)
+        if predict == 'bad':
+            return True
+      
         return False
-    
+
     # adding information to screen
     def add_information(self, packet):
         alert_flag = False
@@ -131,7 +143,11 @@ class SubWindow(QDialog):
             if url != None:
                 if self.malicous_url(url):
                     alert_flag = True
-                    alert += '[+] Possible Suspicious URL [+]\n'
+                    alert = '[+] Possible Suspicious URL [+]\n'
+                else:
+                    alert_flag = True
+                    alert = '[+] Possible Safe URL [+]\n'
+
 
             print("Ml based")
         elif self.args == Pre_Build_String:
@@ -169,7 +185,7 @@ class SubWindow(QDialog):
                 if self.live_get_login_info(packet):
                     alert_flag = True
                     alert += '[+] Possible GET Login Info [+]\n'
-                
+
                 if self.live_is_malicious_url(packet):
                     alert_flag = True
                     alert += '[+] Connecting to Malicious Site [+]\n'
@@ -181,11 +197,12 @@ class SubWindow(QDialog):
             self.text_edit.setText(self.text_edit.text(
             ) + "\n -------------------------------------------------------------------------------- \n")
             self.text_edit.setText(self.text_edit.text() + "\n" + (alert))
-            self.text_edit.setText(self.text_edit.text() + "\n" + (packet.summary()))
-            self.text_edit.setText(self.text_edit.text() + "\nURL : " + self.get_url(packet))
+            self.text_edit.setText(
+                self.text_edit.text() + "\n" + (packet.summary()))
+            self.text_edit.setText(
+                self.text_edit.text() + "\nURL : " + self.get_url(packet))
             self.text_edit.setText(self.text_edit.text(
             ) + "\n\n -------------------------------------------------------------------------------- \n")
-
 
     # --------------------------------------------
     # --------------- live IDS -------------------
@@ -405,7 +422,7 @@ class SubWindow(QDialog):
     # --------------- Malicious IP Address -------------
     # --------------------------------------------------
 
-    def live_is_malicious_url(self,packet):
+    def live_is_malicious_url(self, packet):
         if packet.haslayer(IP):
             # extract source and destination IP addresses
             src_ip = packet[IP].src
@@ -543,7 +560,7 @@ class MainWindow(QMainWindow):
     def process_sniffed_packets(self, packet):
         # time.sleep(1)
 
-        #print(packet)
+        # print(packet)
         self.sub_window.add_information(packet)
 
 
