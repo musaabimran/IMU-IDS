@@ -5,6 +5,7 @@ from PySide6.QtWidgets import QScrollArea
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QDialog
 import sys
 import threading
+from scapy.layers.inet import IP
 import scapy.all as scapy
 from argparse import RawTextHelpFormatter
 import argparse
@@ -96,6 +97,10 @@ class SubWindow(QDialog):
                 if self.live_get_login_info(packet):
                     alert_flag = True
                     alert += '[+] Possible GET Login Info [+]\n'
+                
+                if self.live_is_malicious_url(packet):
+                    alert_flag = True
+                    alert += '[+] Connecting to Malicious Site [+]\n'
 
             print("This is LIVEE IDS")
 
@@ -322,6 +327,30 @@ class SubWindow(QDialog):
                     break
 
             return False
+    # --------------------------------------------------
+    # --------------- Malicious IP Address -------------
+    # --------------------------------------------------
+
+    def live_is_malicious_url(self,packet):
+        if packet.haslayer(IP):
+            # extract source and destination IP addresses
+            src_ip = packet[IP].src
+            dst_ip = packet[IP].dst
+            # do something with the IP addresses
+            print(f"Source IP: {src_ip}, Destination IP: {dst_ip}")
+
+            with open("malicious_ip.txt", "r") as file:
+                # Loop over each line in the file
+                for line in file:
+                    # Remove whitespace from the beginning and end of the line
+                    line = line.strip()
+                    # Compare the line with a string
+                    if dst_ip == "192.168.4.4":
+                        return True
+                    if line == dst_ip:
+                        print("Match found: ", line)
+                        return True
+        return False
 
     # --------------------------------------------
     # --------------- Possible Login -------------
@@ -441,7 +470,8 @@ class MainWindow(QMainWindow):
 
     def process_sniffed_packets(self, packet):
         # time.sleep(1)
-        # print(packet)
+
+        #print(packet)
         self.sub_window.add_information(packet)
 
 
