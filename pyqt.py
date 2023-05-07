@@ -11,12 +11,45 @@ from argparse import RawTextHelpFormatter
 import argparse
 from scapy.layers import http, inet, dhcp, dns, tls
 from scapy.layers.l2 import Ether
-import time  # for seleeping system
+import time
+import joblib 
+import pandas as pd
+from scapy.layers.inet import IP, TCP, UDP, ICMP
+from scapy.layers.l2 import ARP, Ether, Dot3
+from scapy.layers.dns import DNS
+from scapy.layers.http import HTTP
+from scapy.packet import Raw
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+# from url_ml import predict_for_me
 
 Live_Ids_String = "Live IDS"
 Pre_Build_String = "Pre Build IDS"
 ML_Based_String = "ML based"
 
+# making tokens for url
+def makeTokens(f):
+    tkns_BySlash = str(f.encode('utf-8')).split('/') # make tokens after splitting by slash
+    total_Tokens = []
+
+    for i in tkns_BySlash:
+            tokens = str(i).split('-') # make tokens after splitting by dash
+            tkns_ByDot = []
+
+    for j in range(0,len(tokens)):
+        temp_Tokens = str(tokens[j]).split('.') # make tokens after splitting by dot
+        tkns_ByDot = tkns_ByDot + temp_Tokens
+        total_Tokens = total_Tokens + tokens + tkns_ByDot
+        total_Tokens = list(set(total_Tokens))  #remove redundant tokens
+
+        if 'com' in total_Tokens:
+            total_Tokens.remove('com') # removing .com since it occurs a lot of times and it should not be included in our features
+    
+    return total_Tokens
+
+vectorizer = TfidfVectorizer(tokenizer=makeTokens)
 
 class SubWindow(QDialog):
     def __init__(self, arg, parent=None):
@@ -47,6 +80,18 @@ class SubWindow(QDialog):
 
         # Create widget to display information
         self.text_edit = QLabel(arg)
+
+        self.text_edit.setStyleSheet('''
+            QLabel {
+                font-weight: bold;
+                color: black;
+                text-align: center;
+                font-size: 20px;
+                padding: 20px;
+            }
+        ''')
+
+       
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setWidget(self.text_edit)
@@ -54,17 +99,44 @@ class SubWindow(QDialog):
         layout.addWidget(scroll_area)
         self.setLayout(layout)
 
+    # geting the URL
+    def get_url(self, packet):
+        if packet.haslayer('HTTPRequest'):
+            http_layer = packet.getlayer('HTTPRequest')
+            url = http_layer.Host.decode() + http_layer.Path.decode()
+            return url
+
+        return None
+    
+
+    # checking url is malicious or not
+    def malicous_url(self, url):
+        predict_for_me(url)
+
+        # print(predict)
+        # if predict == 'bad':
+        #     return True
+        
+        return False
+    
+    # adding information to screen
     def add_information(self, packet):
         alert_flag = False
         alert = ''
 
         # Append information to the text edit widget
         if self.args == ML_Based_String:
-            print("Here we are oging to do ML Processing")
+            url = self.get_url(packet)
+
+            if url != None:
+                if self.malicous_url(url):
+                    alert_flag = True
+                    alert += '[+] Possible Suspicious URL [+]\n'
+
+            print("Ml based")
         elif self.args == Pre_Build_String:
             print("This is Pre build IDS")
         elif self.args == Live_Ids_String:
-
             if packet.haslayer(http.HTTPRequest):
                 if self.live_sql_injection_test(packet):
                     alert_flag = True
@@ -102,16 +174,18 @@ class SubWindow(QDialog):
                     alert_flag = True
                     alert += '[+] Connecting to Malicious Site [+]\n'
 
-            print("This is LIVEE IDS")
+            print("This is LIVE IDS")
 
         # if alert generated print that
         if alert_flag:
             self.text_edit.setText(self.text_edit.text(
             ) + "\n -------------------------------------------------------------------------------- \n")
             self.text_edit.setText(self.text_edit.text() + "\n" + (alert))
-            self.text_edit.setText(self.text_edit.text() + "\n" + str(packet))
+            self.text_edit.setText(self.text_edit.text() + "\n" + (packet.summary()))
+            self.text_edit.setText(self.text_edit.text() + "\nURL : " + self.get_url(packet))
             self.text_edit.setText(self.text_edit.text(
-            ) + "\n -------------------------------------------------------------------------------- \n")
+            ) + "\n\n -------------------------------------------------------------------------------- \n")
+
 
     # --------------------------------------------
     # --------------- live IDS -------------------
@@ -337,7 +411,7 @@ class SubWindow(QDialog):
             src_ip = packet[IP].src
             dst_ip = packet[IP].dst
             # do something with the IP addresses
-            print(f"Source IP: {src_ip}, Destination IP: {dst_ip}")
+            # print(f"Source IP: {src_ip}, Destination IP: {dst_ip}")
 
             with open("malicious_ip.txt", "r") as file:
                 # Loop over each line in the file
@@ -346,7 +420,7 @@ class SubWindow(QDialog):
                     line = line.strip()
                     # Compare the line with a string
                     if line == dst_ip:
-                        print("Match found: ", line)
+                        # print("Match found: ", line)
                         return True
         return False
 
@@ -392,10 +466,10 @@ class MainWindow(QMainWindow):
         button.clicked.connect(self.live_ids)
         main_layout.addWidget(button)
 
-        # Create button
-        button1 = QPushButton("Pre Build Intrusion Detection")
-        button1.clicked.connect(self.pre_build)
-        main_layout.addWidget(button1)
+        # # Create button
+        # button1 = QPushButton("Pre Build Intrusion Detection")
+        # button1.clicked.connect(self.pre_build)
+        # main_layout.addWidget(button1)
 
         # Create button
         button2 = QPushButton("ML Based Intrusion Detection")
@@ -432,17 +506,17 @@ class MainWindow(QMainWindow):
         sys.exit()
 
     def live_ids(self):
-        print("Live Intrusion Detectione")
+        print("Live Intrusion Detection")
         self.sub_window = SubWindow(Live_Ids_String)
         self.start_sub_window()
 
     def pre_build(self):
-        print("Pre Build Intrusion Detectione")
+        print("Pre Build Intrusion Detection")
         self.sub_window = SubWindow(Pre_Build_String)
         self.start_sub_window()
 
     def ml_based_ids(self):
-        print("This is Ml based ids made by musaab oone and only one ")
+        print("ML Based Intrusion Detection")
         self.sub_window = SubWindow(ML_Based_String)
         self.start_sub_window()
 
