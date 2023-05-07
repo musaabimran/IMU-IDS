@@ -13,8 +13,7 @@ from scapy.layers import http, inet, dhcp, dns, tls
 from scapy.layers.l2 import Ether
 import time  # for seleeping system
 from scapy.layers.http import HTTPRequest
-from scapy.layers.l2 import Raw
-from scapy.layers.inet import TCP
+from scapy.packet import Raw
 
 Live_Ids_String = "Live IDS"
 Pre_Build_String = "Pre Build IDS"
