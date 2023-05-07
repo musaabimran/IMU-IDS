@@ -53,19 +53,297 @@ class SubWindow(QDialog):
         layout = QVBoxLayout()
         layout.addWidget(scroll_area)
         self.setLayout(layout)
-    def add_information(self, info):
+
+    def add_information(self, packet):
+        alert_flag = False
+        alert = ''
+
         # Append information to the text edit widget
         if self.args == ML_Based_String:
             print("Here we are oging to do ML Processing")
         elif self.args == Pre_Build_String:
             print("This is Pre build IDS")
-        elif self.args == Live_Ids_String:
-            print("This is LIVEE IDS")
-        self.text_edit.setText(self.text_edit.text() + "\n" + str(info))
-
+        elif self.args == Live_Ids_String:  
+            
+            # if packet.haslayer(http.HTTPRequest):
+            if self.live_sql_injection_test(packet):
+                alert_flag = True
+                alert +=  '[+] Possible SQL Injection [+]\n'
         
+            
+            if self.live_command_injection_test(packet):
+                alert_flag = True
+                alert +=  '[+] Possible Command Injection [+]\n'
+            
+            if self.live_xpath_injection_test(packet):
+                alert_flag = True
+                alert +=  '[+] Possible XPath Injection [+]\n'
+            
+            if self.live_xslt_injection_test(packet):
+                alert_flag = True
+                alert +=  '[+] Possible XSLT Injection [+]\n'
+            
+            if self.live_xxe_injection_test(packet):
+                alert_flag = True
+                alert +=  '[+] Possible XXE Injection [+]\n'
+
+            if self.live_js_injection_test(packet):
+                alert_flag = True
+                alert +=  '[+] Possible JS Injection [+]\n'
+            
+            if self.live_html_injection_test(packet):
+                alert_flag = True
+                alert +=  '[+] Possible HTML Injection [+]\n'
+
+            if self.live_get_login_info(packet):
+                alert_flag = True
+                alert +=  '[+] Possible GET Login Info [+]\n'
+
+            print("This is LIVEE IDS")
+        
+        # if alert generated print that
+        if alert_flag:
+            self.text_edit.setText(self.text_edit.text() + "\n -------------------------------------------------------------------------------- \n" )
+            self.text_edit.setText(self.text_edit.text() + "\n" + (alert))
+            self.text_edit.setText(self.text_edit.text() + "\n" + str(packet))
+            self.text_edit.setText(self.text_edit.text() + "\n -------------------------------------------------------------------------------- \n" )
+            
+           
+        
+    # --------------------------------------------
+    # --------------- live IDS -------------------
+    # --------------------------------------------
+
+    # --------------------------------------------
+    # --------------- Html injection -------------
+    # --------------------------------------------
+
+    def live_html_injection_test(self, packet):
+        if packet.haslayer(scapy.Raw):
+            load = packet[scapy.Raw].load
+            # Testing if there is some HTML injection Possible
+            html_injections = ["<h1>", "<h2>", "<h1>", "%3C%2F", "%3CHTML%3E", "%3C%2FHTML%3E", "%3E", "%3CH1%3E", "%3C%2FH1%3E", "<HTML>", "</HTML>", "%3CH2%3E",
+                            "%3C%2FH2%3E", "%3CH3%3E", "%3C%2FH3%3E", "%3CH4%3E", "%3C%2FH4%3E", "%3CH5%3E", "%3C%2FH5%3E", "%3CH6%3E", "%3C%2FH6%3E", "</h2>", "%3CBR%3E", "%3CHR%3E"]
+            for html_injection in html_injections:
+                try:
+                    if html_injection in load.decode("utf-8"):
+                        return True
+                except:
+                    break
+            
+            return False
+
+    # --------------------------------------------
+    # --------------- SQL injection -------------
+    # --------------------------------------------
+
+    def live_sql_injection_test(self, packet):
+        if packet.haslayer(scapy.Raw):
+            load = packet[scapy.Raw].load
+            # Testing if there is some HTML injection Possible
+            sql_injections = ["page.asp?id=1 or 1=1",
+                            "page.asp?id=1' or 1=1",
+                            "page.asp?id=1\" or 1=1",
+                            "page.asp?id=1 and 1=2",
+                            "%22page.asp%3Fid%3D1%20or%201%3D1%22%2C%0A",
+                            "page.asp%3Fid%3D1%27%20or%201%3D1",
+                            "page.asp%3Fid%3D1%20or%201%3D1",
+                            "page.asp%3Fid%3D1%22%20or%201%3D1",
+                            "page.asp%3Fid%3D1%20and%201%3D2",
+                            "%22",
+                            "\"",
+                            "'",
+                            "%27",
+                            "#",
+                            "%23",
+                            ";",
+                            "%3B",
+                            "%%2727",
+                            "%25%27"
+                            ]
+            for sql_injection in sql_injections:
+                try:
+                    if sql_injection in load.decode("utf-8"):
+                        return True
+                except:
+                    break
+            
+            return False
+
+    # --------------------------------------------
+    # --------------- XXE injection -------------
+    # --------------------------------------------
+
+    def live_xxe_injection_test(self, packet):
+        if packet.haslayer(scapy.Raw):
+            load = packet[scapy.Raw].load
+            # Testing if there is some xee injection Possible
+            xxe_injections = ["<!DOCTYPE",
+                            "%3C%21DOCTYPE",
+                            "[<!ENTITY",
+                            "%5B%3C%21ENTITY",
+                            "%5D%3E",
+                            "]>",
+                            "<?xml",
+                            "%3C%3Fxml"
+                            ]
+            for xxe_injection in xxe_injections:
+                try:
+                    if xxe_injection in load.decode("utf-8"):
+                        return True
+                except:
+                    break
+            
+            return False
 
 
+    # --------------------------------------------
+    # --------------- JS injection -------------
+    # --------------------------------------------
+
+    def live_js_injection_test(self, packet):
+        if packet.haslayer(scapy.Raw):
+            load = packet[scapy.Raw].load
+
+            # Testing if there is some HTML injection Possible
+            js_injections = ["<script>",
+                            "%3Cscript%3E",
+                            "</script>",
+                            "%3C%2Fscript%3E",
+                            "document.location",
+                            "<?php",
+                            "%3C%3Fphp",
+                            "<img",
+                            "%3Cimg",
+                            "console.log",
+                            "alert",
+                            "alert(",
+                            "alert%28",
+                            "eval",
+                            "<svg",
+                            "%3Csvg",
+                            "<div",
+                            "%3Cdiv"
+                            ]
+            for js_injection in js_injections:
+                try:
+                    if js_injection in load.decode("utf-8"):
+                        return True
+                except:
+                    break
+            
+            return False
+
+    # --------------------------------------------
+    # --------------- XPath Injection -------------
+    # --------------------------------------------
+
+    def live_xpath_injection_test(self, packet):
+        if packet.haslayer(scapy.Raw):
+            load = packet[scapy.Raw].load
+            # Testing if there is some xpath_injection_test Possible
+            xpath_injections = [
+                "' or '1'='1",
+                "%27%20or%20%271%27%3D%271",
+                "' or ''='",
+                "%27%20or%20%27%27%3D%27",
+                "' or 1=1 or 'x'='y",
+                "%27%20or%201%3D1%20or%20%27x%27%3D%27y",
+                "/",
+                "%2F",
+                "//",
+                "%2F%2F",
+                "//*",
+                "%2F%2F%2A",
+                "*/*",
+                "%2A%2F%2A",
+                "@*",
+                "%40%2A"
+
+            ]
+            for xpath_injection in xpath_injections:
+                try:
+                    if xpath_injection in load.decode("utf-8"):
+                        return True
+                except:
+                    break
+            
+            return False
+
+    
+    # --------------------------------------------
+    # --------------- Command injection -------------
+    # --------------------------------------------
+
+    def live_command_injection_test(self, packet):
+        if packet.haslayer(scapy.Raw):
+            load = packet[scapy.Raw].load
+            # Testing if there is some HTML injection Possible
+            command_injections = [
+                "cat \\",
+                "cat%20%2F",
+                ":root",
+                "%3Aroot",
+                "/bin",
+                "%2Fbin",
+                "/sh",
+                "%2Fsh",
+                "/dev",
+                "%2Fdev",
+                "/root",
+                "%2Froot",
+                "/",
+                "%2F"
+            ]
+            for command_injection in command_injections:
+                try:
+                    if command_injection in load.decode("utf-8"):
+                        return True
+                except:
+                    break
+            
+            return False
+    
+    # --------------------------------------------
+    # --------------- XSLT injection -------------
+    # --------------------------------------------
+
+    def live_xslt_injection_test(self, packet):
+        if packet.haslayer(scapy.Raw):
+            load = packet[scapy.Raw].load
+            # Testing if there is some xslt_injection_test
+            xslt_injections = [
+                "<xsl:",
+                "%3Cxsl%3A",
+                "<xsl",
+                "%3Cxsl"
+            ]
+            for xslt_injection in xslt_injections:
+                try:
+                    if xslt_injection in load.decode("utf-8"):
+                        return True
+                except:
+                    break
+            
+            return False
+
+    # --------------------------------------------
+    # --------------- Possible Login -------------
+    # --------------------------------------------
+
+    def live_get_login_info(self, packet):
+        if packet.haslayer(scapy.Raw):
+            load = packet[scapy.Raw].load
+            keywords = ["username", "user", "password", "pass", "login", "eid" , "pswd"]
+
+            for keyword in keywords:
+                try:
+                    if keyword in load.decode("utf-8"):
+                        return True
+                except:
+                    break
+            
+            return False
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -152,8 +430,8 @@ class MainWindow(QMainWindow):
                     prn=self.process_sniffed_packets, filter=filters)  
 
     def process_sniffed_packets(self,packet):
-        time.sleep(1)
-        print(packet)
+        # time.sleep(1)
+        # print(packet)
         self.sub_window.add_information(packet)
 
        
