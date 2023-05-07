@@ -12,10 +12,14 @@ from scapy.layers import http, inet, dhcp, dns, tls
 from scapy.layers.l2 import Ether 
 import time #for seleeping system 
 
+Live_Ids_String = "Live IDS"
+Pre_Build_String = "Pre Build IDS"
+ML_Based_String = "ML based"
+ 
 
 class SubWindow(QDialog):
     def __init__(self,arg, parent=None):
-        args = arg
+        self.args = arg
         super().__init__(parent)
         self.setWindowTitle("IMU-IDS")
         self.setMinimumSize(900, 700)
@@ -51,9 +55,14 @@ class SubWindow(QDialog):
         self.setLayout(layout)
     def add_information(self, info):
         # Append information to the text edit widget
+        if self.args == ML_Based_String:
+            print("Here we are oging to do ML Processing")
+        elif self.args == Pre_Build_String:
+            print("This is Pre build IDS")
+        elif self.args == Live_Ids_String:
+            print("This is LIVEE IDS")
         self.text_edit.setText(self.text_edit.text() + "\n" + str(info))
 
-    # def flag_setup(self):
         
 
 
@@ -89,8 +98,9 @@ class MainWindow(QMainWindow):
         
         # exit button
         button3 = QPushButton("Exit")
-        button3.clicked.connect(QApplication.instance().quit)
+        button3.clicked.connect(self.exit)
         main_layout.addWidget(button3)
+        
 
         # Add main widget to the main window
         self.setCentralWidget(main_widget)
@@ -108,22 +118,28 @@ class MainWindow(QMainWindow):
                 border-radius: 5px;
             }
         """)
+    def exit(self):
+        QApplication.instance().quit
+        sys.exit()
 
+        
     def live_ids(self):
         print("Live Intrusion Detectione")
-        sub_wind = self.start_sub_window()
+        self.sub_window = SubWindow(Live_Ids_String)
+        self.start_sub_window()
         
 
     def pre_build(self):
         print("Pre Build Intrusion Detectione")
-        sub_wind = self.start_sub_window()
+        self.sub_window = SubWindow(Pre_Build_String)
+        self.start_sub_window()
 
     def ml_based_ids(self):
         print("This is Ml based ids made by musaab oone and only one ")
+        self.sub_window = SubWindow(ML_Based_String)
         self.start_sub_window()
         
     def start_sub_window(self):
-        self.sub_window = SubWindow("Below are the alerts")
         self.sub_window.exec()
 
         # sniff the packet and will do all stuff in process_sniffed_packets
