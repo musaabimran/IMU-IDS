@@ -17,7 +17,7 @@ class SubWindow(QDialog):
     def __init__(self,arg, parent=None):
         args = arg
         super().__init__(parent)
-        self.setWindowTitle("Sub Window")
+        self.setWindowTitle("IMU-IDS")
         self.setMinimumSize(900, 700)
         self.setStyleSheet('''
             QDialog {
@@ -53,15 +53,18 @@ class SubWindow(QDialog):
         # Append information to the text edit widget
         self.text_edit.setText(self.text_edit.text() + "\n" + str(info))
 
+    # def flag_setup(self):
+        
+
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
         subwindow = None
         super().__init__()
 
-
         # Set window properties
-        self.setWindowTitle("My App")
+        self.setWindowTitle("IMU IDS")
         self.setFixedSize(400, 300)
 
         # Create main widget and layout
@@ -71,7 +74,7 @@ class MainWindow(QMainWindow):
 
         # Create button
         button = QPushButton("Live Intrusion Detection Packet")
-        button.clicked.connect(self.start_sniffing)
+        button.clicked.connect(self.live_ids)
         main_layout.addWidget(button)
 
         # Create button
@@ -79,11 +82,16 @@ class MainWindow(QMainWindow):
         button1.clicked.connect(self.pre_build)
         main_layout.addWidget(button1)
 
-                # Create button
+        # Create button
         button2 = QPushButton("ML Based Intrusion Detection")
         button2.clicked.connect(self.ml_based_ids)
         main_layout.addWidget(button2)
         
+        # exit button
+        button3 = QPushButton("Exit")
+        button3.clicked.connect(QApplication.instance().quit)
+        main_layout.addWidget(button3)
+
         # Add main widget to the main window
         self.setCentralWidget(main_widget)
 
@@ -100,17 +108,25 @@ class MainWindow(QMainWindow):
                 border-radius: 5px;
             }
         """)
+
+    def live_ids(self):
+        print("Live Intrusion Detectione")
+        sub_wind = self.start_sub_window()
+        
+
     def pre_build(self):
         print("Pre Build Intrusion Detectione")
-
+        sub_wind = self.start_sub_window()
 
     def ml_based_ids(self):
         print("This is Ml based ids made by musaab oone and only one ")
-
+        self.start_sub_window()
         
-    def start_sniffing(self):
+    def start_sub_window(self):
         self.sub_window = SubWindow("Below are the alerts")
         self.sub_window.exec()
+
+        # sniff the packet and will do all stuff in process_sniffed_packets
         thread_sniff = threading.Thread(target=self.sniff, args=(None,None))
         thread_sniff.start() 
 
