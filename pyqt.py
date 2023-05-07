@@ -345,8 +345,6 @@ class SubWindow(QDialog):
                     # Remove whitespace from the beginning and end of the line
                     line = line.strip()
                     # Compare the line with a string
-                    if dst_ip == "192.168.4.4":
-                        return True
                     if line == dst_ip:
                         print("Match found: ", line)
                         return True
