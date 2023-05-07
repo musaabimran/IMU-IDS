@@ -12,6 +12,9 @@ import argparse
 from scapy.layers import http, inet, dhcp, dns, tls
 from scapy.layers.l2 import Ether
 import time  # for seleeping system
+from scapy.layers.http import HTTPRequest
+from scapy.layers.l2 import Raw
+from scapy.layers.inet import TCP
 
 Live_Ids_String = "Live IDS"
 Pre_Build_String = "Pre Build IDS"
@@ -98,10 +101,13 @@ class SubWindow(QDialog):
                     alert_flag = True
                     alert += '[+] Possible GET Login Info [+]\n'
                 
+                if self.live_is_malicious_ip(packet):
+                    alert_flag = True
+                    alert += '[+] Connecting to Malicious IP [+]\n'
                 if self.live_is_malicious_url(packet):
                     alert_flag = True
-                    alert += '[+] Connecting to Malicious Site [+]\n'
-
+                    alert += '[+] Connecting to Malicious URL [+]\n'
+                
             print("This is LIVEE IDS")
 
         # if alert generated print that
@@ -331,7 +337,7 @@ class SubWindow(QDialog):
     # --------------- Malicious IP Address -------------
     # --------------------------------------------------
 
-    def live_is_malicious_url(self,packet):
+    def live_is_malicious_ip(self,packet):
         if packet.haslayer(IP):
             # extract source and destination IP addresses
             src_ip = packet[IP].src
@@ -349,8 +355,44 @@ class SubWindow(QDialog):
                         print("Match found: ", line)
                         return True
         return False
+    
+    
+    # --------------------------------------------------
+    # --------------- Malicious URL Address -------------
+    # --------------------------------------------------
+    def live_is_malicious_url(self,packet):
+        
+        if packet.haslayer(TCP):
+            tcp = packet[TCP]
+            # check if the packet is a HTTP request
+            if tcp.dport == 80 and packet.haslayer(Raw):
+                raw = packet[Raw].load.decode(errors='ignore')
+                if "GET" in raw:
+                    url = raw.split(" ")[1]
+                                    # Loop over each line in the file
+                    for line in file:
+                        # Remove whitespace from the beginning and end of the line
+                        line = line.strip()
+                        # Compare the line with a string
+                        if line == url:
+                            print("Match found: ", line)
+                            return True
 
-    # --------------------------------------------
+        elif packet.haslayer(HTTPRequest):
+            http = packet[HTTPRequest]
+            url = http.Host.decode(errors='ignore') + http.Path.decode(errors='ignore')
+            if url:
+                with open("malicious_url.txt", "r") as file:
+                    # Loop over each line in the file
+                    for line in file:
+                        # Remove whitespace from the beginning and end of the line
+                        line = line.strip()
+                        # Compare the line with a string
+                        if line == url:
+                            print("Match found: ", line)
+                            return True
+        return False
+# --------------------------------------------
     # --------------- Possible Login -------------
     # --------------------------------------------
 
