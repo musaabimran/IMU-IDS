@@ -345,6 +345,7 @@ class SubWindow(QDialog):
             
             return False
 
+close_sniffer = False
 class MainWindow(QMainWindow):
     def __init__(self):
         subwindow = None
@@ -397,10 +398,13 @@ class MainWindow(QMainWindow):
             }
         """)
     def exit(self):
+        global close_sniffer
+        close_sniffer=True
+        time.sleep(1)
         QApplication.instance().quit
         sys.exit()
 
-        
+
     def live_ids(self):
         print("Live Intrusion Detectione")
         self.sub_window = SubWindow(Live_Ids_String)
@@ -422,12 +426,21 @@ class MainWindow(QMainWindow):
 
         # sniff the packet and will do all stuff in process_sniffed_packets
         thread_sniff = threading.Thread(target=self.sniff, args=(None,None))
+        self.sniff_thread = thread_sniff
         thread_sniff.start() 
+
+    def stop_filter(self,packet):
+        global close_sniffer
+    # return True to stop the sniffing process when a certain condition is met
+        #print(close_sniffer)
+        if close_sniffer:
+            return True
+
 
     #this function is used for sniffing
     def sniff(self,interface, filters):
         scapy.sniff(iface=interface, store=False,
-                    prn=self.process_sniffed_packets, filter=filters)  
+                    prn=self.process_sniffed_packets, filter=filters , stop_filter=self.stop_filter)  
 
     def process_sniffed_packets(self,packet):
         # time.sleep(1)
