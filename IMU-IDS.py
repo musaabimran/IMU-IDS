@@ -186,13 +186,13 @@ class SubWindow(QDialog):
                     alert_flag = True
                     alert += '[+] Possible GET Login Info [+]\n'
                 
-                if self.live_is_malicious_ip(packet):
-                    alert_flag = True
-                    alert += '[+] Connecting to Malicious IP [+]\n'
+                # if self.live_is_malicious_ip(packet):
+                #     alert_flag = True
+                #     alert += '[+] Connecting to Malicious IP [+]\n'
                 
-                if self.live_is_malicious_url(packet):
-                    alert_flag = True
-                    alert += '[+] Connecting to Malicious Site [+]\n'
+                # if self.live_is_malicious_url(packet):
+                #     alert_flag = True
+                #     alert += '[+] Connecting to Malicious Site [+]\n'
 
             print("This is LIVE IDS")
 
