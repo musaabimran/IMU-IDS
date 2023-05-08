@@ -511,7 +511,7 @@ class MainWindow(QMainWindow):
 
         # Set window properties
         self.setWindowTitle("IMU IDS")
-        self.setFixedSize(400, 300)
+        self.setFixedSize(500, 400)
 
         # Create main widget and layout
         main_widget = QWidget()
@@ -544,14 +544,16 @@ class MainWindow(QMainWindow):
         # Set stylesheet
         self.setStyleSheet("""
             QMainWindow {
-                background-color: #f0f0f0;
+                background-color: #006666;
             }
             QPushButton {
-                background-color: #4285f4;
-                color: #fff;
+                background-color: #fff;
+                color: #006666;
                 border: none;
                 padding: 10px 20px;
                 border-radius: 5px;
+                font-size: 18px;
+                font-weight:bold;
             }
         """)
 
